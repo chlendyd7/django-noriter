@@ -42,11 +42,13 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    'daphne',
     "django.contrib.staticfiles",
     'chat',
     'corsheaders',
     'rest_framework',
     'asyc',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -133,4 +135,4 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-ASGI_APPLICATION = "myproject.asgi.application"
+ASGI_APPLICATION = "sse.asgi.application"

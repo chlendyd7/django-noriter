@@ -10,6 +10,11 @@ from memory_profiler import profile
 subscribers = []
 
 def event_stream(subscriber_queue):
+    # def event_stream(subscriber_queue):
+    # """비동기 SSE 스트리밍"""
+    for i in range(10):  # 10개의 메시지를 예시로 보내는 코드
+        yield f"data: {json.dumps({'timestamp': str(now()), 'message': f'Message {i}'})}\n\n"
+    yield "data: {\"message\": \"Connection Closing\"}\n\n"
     """실시간 메시지를 스트리밍하는 제너레이터"""
     try:
         while True:
@@ -34,7 +39,7 @@ def sse_view(request):
     response["Cache-Control"] = "no-cache"
     response["X-Accel-Buffering"] = "no"  # Nginx에서 버퍼링 방지
 
-    print(response)
+    # print(response)
     # 클라이언트가 연결되면 subscribers 리스트에 추가
     subscribers.append(response)
     

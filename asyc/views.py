@@ -1,36 +1,45 @@
 import json
 import asyncio
-from django.http import StreamingHttpResponse, HttpResponse
+from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.timezone import now
 from asgiref.sync import sync_to_async
+from django.http.response import StreamingHttpResponse
 import weakref
-from django.http import AsyncHttpResponse  # Django 4.2 이상에서 사용 가능
 
+# uvicorn sse.asgi:application --host 0.0.0.0 --port 8000
 
 subscribers= weakref.WeakSet()
 
 async def event_stream(subscriber_queue):
     """비동기 SSE 스트리밍"""
-    try:
-        while True:
-            try:
-                message = await asyncio.wait_for(subscriber_queue.get(), timeout=10)
-            except asyncio.TimeoutError:
-                message = "ping"  # 10초마다 ping 전송 (heartbeat)
+    for i in range(10):  # 10개의 메시지를 예시로 보내는 코드
+        yield f"data: {json.dumps({'timestamp': str(now()), 'message': f'Message {i}'})}\n\n"
+    yield "data: {\"message\": \"Connection Closing\"}\n\n"
+    # try:
+    #     while True:
+    #         try:
+    #             message = await asyncio.wait_for(subscriber_queue.get(), timeout=10)
+    #         except asyncio.TimeoutError:
+    #             message = "ping"  # 10초마다 ping 전송 (heartbeat)
 
-            yield f"data: {json.dumps({'timestamp': str(now()), 'message': message})}\n\n"
-    except GeneratorExit:
-        print("클라이언트 연결 종료")
-        subscribers.discard(subscriber_queue)  # 클라이언트 연결 종료 시 제거 server'})}\n\n"
+    #         yield f"data: {json.dumps({'timestamp': str(now()), 'message': message})}\n\n"
+    # except GeneratorExit:
+    #     print("클라이언트 연결 종료")
+    #     subscribers.discard(subscriber_queue)  # 클라이언트 연결 종료 시 제거 server'})}\n\n"
 
 @csrf_exempt
 async def sse_view(request):
     """비동기 SSE 응답"""
+    try:
+        loop = asyncio.get_running_loop()
+        print(f"Running in Async Loop: {loop} 루프 실행중이다")
+    except RuntimeError:
+        print("Not running in an Async Loop")
     subscriber_queue = asyncio.Queue()
     subscribers.add(subscriber_queue)
 
-    response = AsyncHttpResponse(
+    response = StreamingHttpResponse(
         event_stream(subscriber_queue),
         content_type="text/event-stream"
     )
