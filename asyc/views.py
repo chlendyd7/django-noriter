@@ -13,20 +13,17 @@ subscribers= weakref.WeakSet()
 
 async def event_stream(subscriber_queue):
     """비동기 SSE 스트리밍"""
-    for i in range(10):  # 10개의 메시지를 예시로 보내는 코드
-        yield f"data: {json.dumps({'timestamp': str(now()), 'message': f'Message {i}'})}\n\n"
-    yield "data: {\"message\": \"Connection Closing\"}\n\n"
-    # try:
-    #     while True:
-    #         try:
-    #             message = await asyncio.wait_for(subscriber_queue.get(), timeout=10)
-    #         except asyncio.TimeoutError:
-    #             message = "ping"  # 10초마다 ping 전송 (heartbeat)
+    try:
+        while True:
+            try:
+                message = await asyncio.wait_for(subscriber_queue.get(), timeout=10)
+            except asyncio.TimeoutError:
+                message = "ping"  # 10초마다 ping 전송 (heartbeat)
 
-    #         yield f"data: {json.dumps({'timestamp': str(now()), 'message': message})}\n\n"
-    # except GeneratorExit:
-    #     print("클라이언트 연결 종료")
-    #     subscribers.discard(subscriber_queue)  # 클라이언트 연결 종료 시 제거 server'})}\n\n"
+            yield f"data: {json.dumps({'timestamp': str(now()), 'message': message})}\n\n"
+    except GeneratorExit:
+        print("클라이언트 연결 종료")
+        subscribers.discard(subscriber_queue)  # 클라이언트 연결 종료 시 제거 server'})}\n\n"
 
 @csrf_exempt
 async def sse_view(request):

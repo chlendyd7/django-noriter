@@ -12,10 +12,10 @@ subscribers = []
 def event_stream(subscriber_queue):
     # def event_stream(subscriber_queue):
     # """비동기 SSE 스트리밍"""
-    for i in range(10):  # 10개의 메시지를 예시로 보내는 코드
-        yield f"data: {json.dumps({'timestamp': str(now()), 'message': f'Message {i}'})}\n\n"
-    yield "data: {\"message\": \"Connection Closing\"}\n\n"
-    """실시간 메시지를 스트리밍하는 제너레이터"""
+    # for i in range(10):  # 10개의 메시지를 예시로 보내는 코드
+    #     yield f"data: {json.dumps({'timestamp': str(now()), 'message': f'Message {i}'})}\n\n"
+    # yield "data: {\"message\": \"Connection Closing\"}\n\n"
+    # """실시간 메시지를 스트리밍하는 제너레이터"""
     try:
         while True:
             try:
