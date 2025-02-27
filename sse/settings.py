@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'asyc',
     'channels',
+    'sockt',
 ]
 
 MIDDLEWARE = [
@@ -93,6 +94,11 @@ DATABASES = {
     }
 }
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
