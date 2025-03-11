@@ -1,5 +1,6 @@
 import json
 import asyncio
+import time
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.timezone import now
@@ -7,43 +8,46 @@ from asgiref.sync import sync_to_async
 from django.http.response import StreamingHttpResponse
 import weakref
 
+
 # uvicorn sse.asgi:application --host 0.0.0.0 --port 8000
+connected_clients = {}
+test_time = None
 
-subscribers= weakref.WeakSet()
+async def event_stream(request):
+    session_id = request.session.session_key  # 세션 ID를 가져옵니다.
 
-async def event_stream(subscriber_queue):
-    """비동기 SSE 스트리밍"""
-    try:
-        while True:
-            try:
-                message = await asyncio.wait_for(subscriber_queue.get(), timeout=10)
-            except asyncio.TimeoutError:
-                message = "ping"  # 10초마다 ping 전송 (heartbeat)
+    while True:
+        if session_id not in connected_clients:
+            break
+        await asyncio.sleep(5)
+        yield f"data: {json.dumps({'timestamp': str(now()), 'message': 'ping'})}\n\n"
 
-            yield f"data: {json.dumps({'timestamp': str(now()), 'message': message})}\n\n"
-    except GeneratorExit:
-        print("클라이언트 연결 종료")
-        subscribers.discard(subscriber_queue)  # 클라이언트 연결 종료 시 제거 server'})}\n\n"
 
 @csrf_exempt
-async def sse_view(request):
-    """비동기 SSE 응답"""
-    try:
-        loop = asyncio.get_running_loop()
-        print(f"Running in Async Loop: {loop} 루프 실행중이다")
-    except RuntimeError:
-        print("Not running in an Async Loop")
-    subscriber_queue = asyncio.Queue()
-    subscribers.add(subscriber_queue)
+async def sse_connect(request):
+    global test_time
+    if not request.session.session_key:
+        await sync_to_async(request.session.create)()  # 세션이 없으면 새로 생성
 
-    response = StreamingHttpResponse(
-        event_stream(subscriber_queue),
-        content_type="text/event-stream"
-    )
+    response = StreamingHttpResponse(event_stream(request), content_type="text/event-stream")
     response["Cache-Control"] = "no-cache"
-    response["X-Accel-Buffering"] = "no"  # Nginx에서 버퍼링 방지
+    response['Connection'] = 'keep-alive'
+    # response["X-Accel-Buffering"] = "no"  # Nginx에서 버퍼링 방지
+    if not request.session.session_key in connected_clients:
+        session_id = request.session.session_key
+        connected_clients[session_id] = response
 
-    print(f"현재 연결된 클라이언트 수: {len(subscribers)}")
+
+    print(f'{request.session.session_key} 연결')
+    print(f'{len(connected_clients)} 명 연결')
+    if test_time is None:
+        test_time = time.time()  # 테스트 시작 시간 설정
+    if len(connected_clients) >= 100:
+        elapsed_time = time.time() - test_time  # 경과 시간 계산
+        print(f'{elapsed_time} 초 걸림')
+
+
+    response.status_code = 200
     return response
 
 @csrf_exempt
