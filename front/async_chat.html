@@ -20,7 +20,8 @@
 
         function connectSSE() {
             console.log("🔄 SSE 연결 시도...");
-            eventSource = new EventSource("http://127.0.0.1:8000/asyc/");
+            setTimeout(1000);
+            eventSource = new EventSource("http://127.0.0.1:8000/asyc/connect/");
 
             eventSource.onmessage = function(event) {
                 const data = JSON.parse(event.data);
@@ -32,7 +33,7 @@
             eventSource.onerror = function(event) {
                 console.error("❌ SSE 연결 오류. 3초 후 재연결...");
                 eventSource.close();
-                setTimeout(connectSSE, 1000); // 3초 후 자동 재연결
+                setTimeout(connectSSE, 5000); // 3초 후 자동 재연결
             };
 
             eventSource.onopen = function() {

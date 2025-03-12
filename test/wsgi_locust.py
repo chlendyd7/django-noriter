@@ -1,3 +1,4 @@
+# locust -f test\wsgi_locust.py --host=http://localhost:8000
 from locust import HttpUser, task, between
 import json
 
