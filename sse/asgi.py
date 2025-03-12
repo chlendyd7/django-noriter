@@ -1,11 +1,4 @@
-"""
-ASGI config for sse project.
-
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/5.1/howto/deployment/asgi/
-"""
+# uvicorn sse.asgi:application --host 0.0.0.0 --port 8000
 
 import os
 import django
@@ -22,7 +15,7 @@ application = ProtocolTypeRouter({
     "http": get_asgi_application(),
     "websocket": AuthMiddlewareStack(
         URLRouter(
-            sockt.routing.websocket_urlpatterns  # routing.py의 websocket_urlpatterns를 참조
+            sockt.routing.websocket_urlpatterns
         )
     ),
 })
