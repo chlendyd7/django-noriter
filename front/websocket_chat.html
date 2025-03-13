@@ -1,0 +1,99 @@
+<!-- templates/chat/index.html -->
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebSocket Chat</title>
+        <style>
+            .status {
+                padding: 5px 10px;
+                border-radius: 5px;
+                margin: 10px 0;
+            }
+            .connected { background-color: #4CAF50; color: white; }
+            .disconnected { background-color: #f44336; color: white; }
+            .connecting { background-color: #2196F3; color: white; }
+        </style>
+    </head>
+    <body>
+        <h1>Chat Room</h1>
+        <div id="connection-status" class="status disconnected">연결 상태: 연결 끊김</div>
+        <div id="chat-log"></div>
+        <input id="chat-message-input" type="text" size="100">
+        <button id="chat-message-input-btn">Send</button>
+
+        <script>
+            let reconnectAttempts = 0;
+            const maxReconnectAttempts = 5;
+            let chatSocket = null;
+
+            function updateConnectionStatus(status, message) {
+                const statusDiv = document.querySelector('#connection-status');
+                statusDiv.className = `status ${status}`;
+                statusDiv.textContent = `연결 상태: ${message}`;
+            }
+
+            function connectWebSocket() {
+                updateConnectionStatus('connecting', '연결 시도 중...');
+                
+                // HTTP와 HTTPS에 따라 ws:// 또는 wss:// 자동 선택
+                const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+                const wsURL = "ws://localhost:8000/ws/chat/";
+
+                <!-- const wsURL = `${wsScheme}://${window.location.host}/ws/chat/`; -->
+                console.log(`WebSocket 연결 시도: ${wsURL}`);
+                
+                chatSocket = new WebSocket(wsURL);
+
+                chatSocket.onopen = function() {
+                    console.log('✅ WebSocket 연결 성공');
+                    updateConnectionStatus('connected', '연결됨');
+                    reconnectAttempts = 0;
+                };
+
+                chatSocket.onmessage = function(e) {
+                    const data = JSON.parse(e.data);
+                    document.querySelector('#chat-log').innerHTML += '<br>' + data.message;
+                };
+
+                chatSocket.onclose = function(e) {
+                    console.error('⛔ WebSocket 연결 끊김:', e.reason);
+                    updateConnectionStatus('disconnected', '연결 끊김');
+                    
+                    if (reconnectAttempts < maxReconnectAttempts) {
+                        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000);
+                        console.log(`${delay / 1000}초 후 재연결 시도...`);
+                        setTimeout(connectWebSocket, delay);
+                        reconnectAttempts++;
+                    } else {
+                        updateConnectionStatus('disconnected', '재연결 실패. 페이지를 새로고침하세요.');
+                    }
+                };
+
+                chatSocket.onerror = function(err) {
+                    console.error('🔥 WebSocket 에러 발생:', err);
+                    updateConnectionStatus('disconnected', '연결 에러');
+                };
+            }
+
+            connectWebSocket();
+
+            document.querySelector('#chat-message-input-btn').onclick = function() {
+                const messageInputDom = document.querySelector('#chat-message-input');
+                const message = messageInputDom.value;
+
+                if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                    chatSocket.send(JSON.stringify({'message': message}));
+                    messageInputDom.value = '';
+                } else {
+                    alert('서버와 연결이 끊어졌습니다. 잠시 후 다시 시도해주세요.');
+                }
+            };
+
+            document.querySelector('#chat-message-input').onkeyup = function(e) {
+                if (e.keyCode === 13) {
+                    document.querySelector('#chat-message-input-btn').click();
+                }
+            };
+        </script>
+    </body>
+</html>

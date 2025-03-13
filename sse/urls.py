@@ -21,7 +21,6 @@ from django.views.generic import TemplateView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path('events/', include('chat.urls')),
     path('asyc/', include('asyc.urls')),
-    path('chat/', TemplateView.as_view(template_name='websocket_chat.html')),
+    path('chat/', include('chat.urls')),
 ]

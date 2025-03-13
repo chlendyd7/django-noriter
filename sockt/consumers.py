@@ -1,23 +1,37 @@
 # sockt/consumers.py
+from collections import defaultdict
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.layers import get_channel_layer
+import asyncio
+from datetime import datetime
+import pandas as pd
+import matplotlib.pyplot as plt
 
 class ChatConsumer(AsyncWebsocketConsumer):
+    # 클래스 변수로 연결된 클라이언트 수 추적
+    connected_clients = defaultdict(int)
+    start_time = None
+    # connection_data = []
+
     async def connect(self):
-        print("WebSocket 연결 시도...")
-        # WebSocket 연결을 수락하기 전에 클라이언트에게 채팅방을 설정
-        self.room_name = "chatroom"
+        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
         self.room_group_name = f'chat_{self.room_name}'
 
-        # 방 그룹에 사용자를 추가
         await self.channel_layer.group_add(
             self.room_group_name,
-            self.channel_name
+            self.channel_name # channel_name은 자동으로 생성
         )
-
-        # 연결 승인
         await self.accept()
-        print(f"WebSocket 연결 성공! (채널: {self.channel_name}, 그룹: {self.room_group_name})")
+        self.connected_clients[self.channel_name] += 1
+        
+        if self.start_time is None:
+            self.start_time = datetime.now()
+        # self.connection_data.append((len(self.connected_clients), datetime.now() - self.start_time))
+
+        if self.connected_clients[self.channel_name] >= 100:
+            print('총 시간', datetime.now() - self.start_time)
+
 
     async def disconnect(self, close_code):
         print(f"WebSocket 연결 종료 (코드: {close_code}, 채널: {self.channel_name})")
@@ -26,26 +40,4 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             self.channel_name
         )
-
-    async def receive(self, text_data):
-        # 클라이언트로부터 받은 메시지를 처리
-        text_data_json = json.loads(text_data)
-        message = text_data_json['message']
-        print(f"메시지 수신 (채널: {self.channel_name}): {message}")
-
-        # 방 그룹에 메시지를 전송
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'chat_message',
-                'message': message
-            }
-        )
-        print(f"메시지 브로드캐스트 완료 (그룹: {self.room_group_name})")
-
-    async def chat_message(self, event):
-        # 그룹에서 받은 메시지를 클라이언트로 전송
-        message = event['message']
-        await self.send(text_data=json.dumps({
-            'message': message
-        }))
+        self.connected_clients[self.channel_name] -= max(0, self.connected_clients[self.channel_name] - 1)
