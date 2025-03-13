@@ -7,8 +7,12 @@ from django.utils.timezone import now
 from queue import Queue
 from memory_profiler import profile
 
+import pandas as pd
+import matplotlib.pyplot as plt
+
 connected_clients = {}
 test_time = None
+connection_data = []
 
 def event_stream(request):
     session_id = request.session.session_key  # 세션 ID를 가져옵니다.
@@ -22,7 +26,8 @@ def event_stream(request):
 # @profile
 # @csrf_exempt
 def sse_connect(request):
-    global test_time
+    global test_time, connection_data
+    
     if not request.session.session_key:
         request.session.create()  # 세션이 없으면 새로 생성
 
@@ -35,13 +40,21 @@ def sse_connect(request):
         connected_clients[session_id] = response
 
 
-    print(f'{request.session.session_key} 연결')
-    print(f'{len(connected_clients)} 명 연결')
     if test_time is None:
         test_time = time.time()  # 테스트 시작 시간 설정
+
+    connection_data.append((len(connected_clients), time.time() - test_time))
+
     if len(connected_clients) >= 100:
         elapsed_time = time.time() - test_time  # 경과 시간 계산
         print(f'{elapsed_time} 초 걸림')
+        df = pd.DataFrame(connection_data, columns=['Connected Clients', 'Elapsed Time'])
+        plt.plot(df['Elapsed Time'], df['Connected Clients'])
+        plt.xlabel('Elapsed Time (seconds)')
+        plt.ylabel('Number of Connected Clients')
+        plt.title('Connected Clients Over Time')
+        plt.show()
+
 
 
     response.status_code = 200
